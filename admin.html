@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administración Invitaciones – Jenniffer Rico</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    body { 
+      font-family: 'Playfair Display', serif; 
+      background-color: #000; 
+      color: #D4AF37; 
+      padding: 20px; 
+    }
+    h1 { text-align: center; margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #D4AF37; padding: 10px; text-align: left; }
+    th { background-color: #222; }
+    button { 
+      margin-top: 10px; 
+      padding: 10px 20px; 
+      background-color: #D4AF37; 
+      border: none; 
+      cursor: pointer; 
+      border-radius: 8px; 
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Confirmaciones de Invitaciones</h1>
+<button id="exportBtn">Exportar a XLSX</button>
+
+<table id="tabla">
+  <thead>
+    <tr>
+      <th>Nombre / Familia</th>
+      <th>Enlace enviado (ID)</th>
+      <th>Total invitaciones enviadas</th>
+      <th>Confirmadas</th>
+      <th>Restantes</th>
+      <th>Última confirmación</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+<!-- XLSX -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "TU_API_KEY",
+  authDomain: "TU_AUTH_DOMAIN",
+  projectId: "TU_PROJECT_ID",
+  storageBucket: "TU_STORAGE_BUCKET",
+  messagingSenderId: "TU_MESSAGING_SENDER_ID",
+  appId: "TU_APP_ID"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+const tablaBody = document.querySelector('#tabla tbody');
+
+async function cargarConfirmaciones() {
+  tablaBody.innerHTML = '';
+  
+  // Obtener todos los documentos
+  const snapshot = await db.collection('invitaciones').orderBy('fechaConfirmacion', 'asc').get();
+  
+  const grouped = {};
+
+  // Agrupar por nombre + docId (cada enlace único)
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    const key = data.nombre + '_' + (data.numeroInvitados || 1); // cada familia/enlace
+    if (!grouped[key]) {
+      grouped[key] = {
+        nombre: data.nombre,
+        id: doc.id,
+        total: data.numeroInvitados || 1,
+        confirmadas: 0,
+        ultimaFecha: null
+      };
+    }
+    if (data.confirmado) {
+      grouped[key].confirmadas += data.confirmados || 1;
+      grouped[key].ultimaFecha = data.fechaConfirmacion?.toDate();
+    }
+  });
+
+  // Crear filas de la tabla
+  for (const key in grouped) {
+    const g = grouped[key];
+    const restantes = g.total - g.confirmadas;
+    const ultima = g.ultimaFecha ? g.ultimaFecha.toLocaleString() : '-';
+    const fila = document.createElement('tr');
+    fila.innerHTML = `
+      <td>${g.nombre}</td>
+      <td>${g.id}</td>
+      <td>${g.total}</td>
+      <td>${g.confirmadas}</td>
+      <td>${restantes}</td>
+      <td>${ultima}</td>
+    `;
+    tablaBody.appendChild(fila);
+  }
+}
+
+cargarConfirmaciones();
+
+// Exportar a XLSX
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const wb = XLSX.utils.table_to_book(document.getElementById('tabla'), { sheet: "Confirmaciones" });
+  XLSX.writeFile(wb, "confirmaciones.xlsx");
+});
+</script>
+
+</body>
+</html>
