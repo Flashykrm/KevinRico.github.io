@@ -62,18 +62,23 @@
 
   <p style="margin-top: 20px;">Con cariño, te esperamos.</p>
 
-  <!-- Firebase -->
+  <!-- Firebase (compat) -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
   <script>
+    // Configuración de Firebase (tomada de tu snippet real)
     const firebaseConfig = {
-      apiKey: "TU_API_KEY",
-      authDomain: "TU_AUTH_DOMAIN",
-      projectId: "TU_PROJECT_ID",
-      storageBucket: "TU_STORAGE_BUCKET",
-      messagingSenderId: "TU_MESSAGING_SENDER_ID",
-      appId: "TU_APP_ID"
+      apiKey: "AIzaSyDGxim4njyGRvaWJq1Wm1uzZWT0Wp0R4-U",
+      authDomain: "graduacion-jenniffer.firebaseapp.com",
+      projectId: "graduacion-jenniffer",
+      storageBucket: "graduacion-jenniffer.firebasestorage.app",
+      messagingSenderId: "868998922614",
+      appId: "1:868998922614:web:858189ee7255017dcb3a57",
+      measurementId: "G-9TV1D7WMZS"
     };
+
+    // Inicializar Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
