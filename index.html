@@ -67,7 +67,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 
   <script>
-    // Configuración de Firebase (tomada de tu snippet real)
+    // Configuración de Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyDGxim4njyGRvaWJq1Wm1uzZWT0Wp0R4-U",
       authDomain: "graduacion-jenniffer.firebaseapp.com",
@@ -82,6 +82,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
+    // Leer parámetros del enlace
     const urlParams = new URLSearchParams(window.location.search);
     const nombre = urlParams.get('nombre') || "Invitado";
     const maxInvitados = parseInt(urlParams.get('numero')) || 1;
@@ -92,49 +93,48 @@
 
     invitadoTexto.textContent = `Estimado(a) ${nombre}, tienes ${maxInvitados} invitación(es)`;
 
-    const docId = `${nombre.replace(/\s/g,'_')}_${Date.now()}`;
+    const docId = nombre.replace(/\s/g,'_'); // Documento único por invitado/familia
     const docRef = db.collection('invitaciones').doc(docId);
 
     // Inicializar contador
     let confirmadosActuales = 0;
-    contadorTexto.textContent = `Invitaciones confirmadas: ${confirmadosActuales} / ${maxInvitados}`;
 
-    confirmBtn.addEventListener('click', async () => {
-      if (confirmadosActuales < maxInvitados && !confirmBtn.classList.contains('confirmado')) {
-        confirmadosActuales++;
-        await docRef.set({
+    docRef.get().then(doc => {
+      if(doc.exists){
+        confirmadosActuales = doc.data().confirmados || 0;
+      } else {
+        docRef.set({
           nombre: nombre,
           numeroInvitados: maxInvitados,
+          confirmados: 0,
+          confirmado: false,
+          fechaConfirmacion: null
+        });
+      }
+      contadorTexto.textContent = `Invitaciones confirmadas: ${confirmadosActuales} / ${maxInvitados}`;
+      if(confirmadosActuales >= maxInvitados){
+        confirmBtn.textContent = 'Confirmado';
+        confirmBtn.classList.add('confirmado');
+      }
+    });
+
+    confirmBtn.addEventListener('click', async () => {
+      if(confirmadosActuales < maxInvitados && !confirmBtn.classList.contains('confirmado')) {
+        confirmadosActuales++;
+        await docRef.update({
           confirmados: confirmadosActuales,
-          confirmado: true,
+          confirmado: confirmadosActuales >= maxInvitados,
           fechaConfirmacion: firebase.firestore.Timestamp.now()
         });
 
         contadorTexto.textContent = `Invitaciones confirmadas: ${confirmadosActuales} / ${maxInvitados}`;
 
-        if (confirmadosActuales >= maxInvitados) {
+        if(confirmadosActuales >= maxInvitados){
           confirmBtn.textContent = 'Confirmado';
           confirmBtn.classList.add('confirmado');
         }
       }
     });
-
-    // Verificar si ya se confirmaron todas las entradas (por si recarga la página)
-    db.collection('invitaciones')
-      .where("nombre", "==", nombre)
-      .get()
-      .then(snapshot => {
-        let total = 0;
-        snapshot.forEach(doc => {
-          total += doc.data().confirmados || 0;
-        });
-        confirmadosActuales = total;
-        contadorTexto.textContent = `Invitaciones confirmadas: ${confirmadosActuales} / ${maxInvitados}`;
-        if (confirmadosActuales >= maxInvitados) {
-          confirmBtn.textContent = 'Confirmado';
-          confirmBtn.classList.add('confirmado');
-        }
-      });
   </script>
 
 </body>
