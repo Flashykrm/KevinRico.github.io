@@ -36,7 +36,6 @@
   <thead>
     <tr>
       <th>Nombre / Familia</th>
-      <th>Enlace enviado (ID)</th>
       <th>Total invitaciones enviadas</th>
       <th>Confirmadas</th>
       <th>Restantes</th>
@@ -46,7 +45,7 @@
   <tbody></tbody>
 </table>
 
-<!-- Firebase (compat para que tu código actual funcione) -->
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 
@@ -54,75 +53,51 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
-  // Configuración de Firebase (tu snippet real)
-  const firebaseConfig = {
-    apiKey: "AIzaSyDGxim4njyGRvaWJq1Wm1uzZWT0Wp0R4-U",
-    authDomain: "graduacion-jenniffer.firebaseapp.com",
-    projectId: "graduacion-jenniffer",
-    storageBucket: "graduacion-jenniffer.firebasestorage.app",
-    messagingSenderId: "868998922614",
-    appId: "1:868998922614:web:858189ee7255017dcb3a57",
-    measurementId: "G-9TV1D7WMZS"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyDGxim4njyGRvaWJq1Wm1uzZWT0Wp0R4-U",
+  authDomain: "graduacion-jenniffer.firebaseapp.com",
+  projectId: "graduacion-jenniffer",
+  storageBucket: "graduacion-jenniffer.firebasestorage.app",
+  messagingSenderId: "868998922614",
+  appId: "1:868998922614:web:858189ee7255017dcb3a57",
+  measurementId: "G-9TV1D7WMZS"
+};
 
-  // Inicializar Firebase
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-  const tablaBody = document.querySelector('#tabla tbody');
+const tablaBody = document.querySelector('#tabla tbody');
 
-  async function cargarConfirmaciones() {
-    tablaBody.innerHTML = '';
-    
-    // Obtener todos los documentos de la colección "invitaciones"
-    const snapshot = await db.collection('invitaciones').orderBy('fechaConfirmacion', 'asc').get();
-    
-    const grouped = {};
+async function cargarConfirmaciones() {
+  tablaBody.innerHTML = '';
+  
+  const snapshot = await db.collection('invitaciones').orderBy('fechaConfirmacion', 'asc').get();
 
-    // Agrupar por nombre + docId (cada enlace único)
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const key = data.nombre + '_' + (data.numeroInvitados || 1); // cada familia/enlace
-      if (!grouped[key]) {
-        grouped[key] = {
-          nombre: data.nombre,
-          id: doc.id,
-          total: data.numeroInvitados || 1,
-          confirmadas: 0,
-          ultimaFecha: null
-        };
-      }
-      if (data.confirmado) {
-        grouped[key].confirmadas += data.confirmados || 1;
-        grouped[key].ultimaFecha = data.fechaConfirmacion?.toDate();
-      }
-    });
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    const confirmadas = data.confirmados || 0;
+    const restantes = (data.numeroInvitados || 1) - confirmadas;
+    const ultima = data.fechaConfirmacion ? data.fechaConfirmacion.toDate().toLocaleString() : '-';
 
-    // Crear filas de la tabla
-    for (const key in grouped) {
-      const g = grouped[key];
-      const restantes = g.total - g.confirmadas;
-      const ultima = g.ultimaFecha ? g.ultimaFecha.toLocaleString() : '-';
-      const fila = document.createElement('tr');
-      fila.innerHTML = `
-        <td>${g.nombre}</td>
-        <td>${g.id}</td>
-        <td>${g.total}</td>
-        <td>${g.confirmadas}</td>
-        <td>${restantes}</td>
-        <td>${ultima}</td>
-      `;
-      tablaBody.appendChild(fila);
-    }
-  }
-
-  cargarConfirmaciones();
-
-  // Exportar a XLSX
-  document.getElementById('exportBtn').addEventListener('click', () => {
-    const wb = XLSX.utils.table_to_book(document.getElementById('tabla'), { sheet: "Confirmaciones" });
-    XLSX.writeFile(wb, "confirmaciones.xlsx");
+    const fila = document.createElement('tr');
+    fila.innerHTML = `
+      <td>${data.nombre}</td>
+      <td>${data.numeroInvitados || 1}</td>
+      <td>${confirmadas}</td>
+      <td>${restantes}</td>
+      <td>${ultima}</td>
+    `;
+    tablaBody.appendChild(fila);
   });
+}
+
+cargarConfirmaciones();
+
+// Exportar XLSX
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const wb = XLSX.utils.table_to_book(document.getElementById('tabla'), { sheet: "Confirmaciones" });
+  XLSX.writeFile(wb, "confirmaciones.xlsx");
+});
 </script>
 
 </body>
