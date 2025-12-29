@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Graduación de Maestría – Jenniffer Rico</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Playfair Display', serif;
+      background-color: #000;
+      color: #D4AF37;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      flex-direction: column;
+      text-align: center;
+      padding: 20px;
+    }
+
+    h1 { font-size: 2rem; margin-bottom: 10px; }
+    p { font-size: 1.1rem; margin: 5px 0; }
+    a { color: #D4AF37; text-decoration: none; font-weight: bold; }
+    .iconos { font-size: 2rem; margin: 10px 0; }
+    .invitado { margin: 20px 0; font-size: 1.2rem; color: #fff; }
+    .contador { margin-top: 10px; font-size: 1rem; color: #fff; }
+    #confirmBtn {
+      background-color: #D4AF37;
+      border: none;
+      color: #000;
+      font-size: 1.2rem;
+      padding: 12px 25px;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+    #confirmBtn.confirmado {
+      background-color: #C0C0C0;
+      color: #000;
+      cursor: default;
+    }
+    @media (max-width: 600px) {
+      h1 { font-size: 1.5rem; }
+      p { font-size: 1rem; }
+      #confirmBtn { font-size: 1rem; padding: 10px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="iconos">🎓 📜</div>
+  <h1>Graduación de Maestría – Jenniffer Rico</h1>
+  <p>Acompáñanos a celebrar este gran logro académico</p>
+  <p>📅 7 de marzo de 2026, 4:30 p.m. – 9:15 p.m.</p>
+  <p>📍 <a href="https://goo.gl/maps/example" target="_blank">Salón & Fiestas Twist – San Francisco Coacalco</a></p>
+
+  <div class="invitado" id="invitadoTexto"></div>
+  <div class="contador" id="contadorTexto"></div>
+  <button id="confirmBtn">Confirmar</button>
+
+  <p style="margin-top: 20px;">Con cariño, te esperamos.</p>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "TU_API_KEY",
+      authDomain: "TU_AUTH_DOMAIN",
+      projectId: "TU_PROJECT_ID",
+      storageBucket: "TU_STORAGE_BUCKET",
+      messagingSenderId: "TU_MESSAGING_SENDER_ID",
+      appId: "TU_APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const nombre = urlParams.get('nombre') || "Invitado";
+    const maxInvitados = parseInt(urlParams.get('numero')) || 1;
+
+    const invitadoTexto = document.getElementById('invitadoTexto');
+    const contadorTexto = document.getElementById('contadorTexto');
+    const confirmBtn = document.getElementById('confirmBtn');
+
+    invitadoTexto.textContent = `Estimado(a) ${nombre}, tienes ${maxInvitados} invitación(es)`;
+
+    const docId = `${nombre.replace(/\s/g,'_')}_${Date.now()}`;
+    const docRef = db.collection('invitaciones').doc(docId);
+
+    // Inicializar contador
+    let confirmadosActuales = 0;
+    contadorTexto.textContent = `Invitaciones confirmadas: ${confirmadosActuales} / ${maxInvitados}`;
+
+    confirmBtn.addEventListener('click', async () => {
+      if (confirmadosActuales < maxInvitados && !confirmBtn.classList.contains('confirmado')) {
+        confirmadosActuales++;
+        await docRef.set({
+          nombre: nombre,
+          numeroInvitados: maxInvitados,
+          confirmados: confirmadosActuales,
+          confirmado: true,
+          fechaConfirmacion: firebase.firestore.Timestamp.now()
+        });
+
+        contadorTexto.textContent = `Invitaciones confirmadas: ${confirmadosActuales} / ${maxInvitados}`;
+
+        if (confirmadosActuales >= maxInvitados) {
+          confirmBtn.textContent = 'Confirmado';
+          confirmBtn.classList.add('confirmado');
+        }
+      }
+    });
+
+    // Verificar si ya se confirmaron todas las entradas (por si recarga la página)
+    db.collection('invitaciones')
+      .where("nombre", "==", nombre)
+      .get()
+      .then(snapshot => {
+        let total = 0;
+        snapshot.forEach(doc => {
+          total += doc.data().confirmados || 0;
+        });
+        confirmadosActuales = total;
+        contadorTexto.textContent = `Invitaciones confirmadas: ${confirmadosActuales} / ${maxInvitados}`;
+        if (confirmadosActuales >= maxInvitados) {
+          confirmBtn.textContent = 'Confirmado';
+          confirmBtn.classList.add('confirmado');
+        }
+      });
+  </script>
+
+</body>
+</html>
